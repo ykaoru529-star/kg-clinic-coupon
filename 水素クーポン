@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>💧 水素吸入クーポン管理</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --green:#4a8060;--gl:#6ab878;--gd:#1d4025;
+  --bg:#0d1210;--sf:#161e18;--sf2:#1e2820;
+  --bd:#2a3830;--tx:#d0e8d0;--mu:#507060;
+  --red:#c05050;--am:#b08030;
+}
+body{background:var(--bg);color:var(--tx);font-family:'Noto Sans JP',system-ui,sans-serif;min-height:100vh;padding-bottom:40px}
+
+.header{background:linear-gradient(135deg,#0d1a10,#162a1a);border-bottom:1px solid var(--bd);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.header-left{display:flex;align-items:center;gap:10px}
+.logo{font-size:22px}
+.title{font-size:15px;font-weight:700;color:var(--gl)}
+.subtitle{font-size:10px;color:var(--mu);letter-spacing:.1em}
+.staff-chip{background:rgba(74,128,96,.15);border:1px solid rgba(106,184,120,.2);border-radius:20px;padding:5px 12px;font-size:11px;color:var(--mu)}
+.staff-chip span{color:var(--gl);font-weight:600}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px 16px 0}
+.stat{background:linear-gradient(135deg,var(--sf),var(--sf2));border:1px solid var(--bd);border-radius:14px;padding:14px 8px;text-align:center;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gl),#c4a050)}
+.stat-num{font-size:28px;font-weight:700;color:var(--gl);line-height:1;margin-bottom:4px}
+.stat-num.amber{color:var(--am)}
+.stat-label{font-size:9px;color:var(--mu);letter-spacing:.1em}
+
+.tabs{display:flex;margin:14px 16px 0;background:var(--sf);border:1px solid var(--bd);border-radius:12px;overflow:hidden;padding:3px;gap:3px}
+.tab-btn{flex:1;padding:10px 4px;background:transparent;color:var(--mu);border:none;font-size:11px;cursor:pointer;border-radius:9px;font-family:inherit;font-weight:500}
+.tab-btn.active{background:linear-gradient(135deg,var(--green),#3a6850);color:#d0f0d8;font-weight:700;box-shadow:0 2px 8px rgba(74,128,96,.3)}
+
+.panel{background:linear-gradient(135deg,var(--sf),var(--sf2));border:1px solid var(--bd);border-radius:16px;padding:16px;margin:10px 16px 0;display:none}
+.panel.active{display:block}
+.panel-title{font-size:9px;letter-spacing:.25em;color:var(--mu);margin-bottom:14px;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.panel-title::before{content:'';width:16px;height:1px;background:var(--gl)}
+
+input{width:100%;background:var(--bg);border:1px solid var(--bd);color:var(--tx);padding:13px 14px;font-size:15px;border-radius:10px;outline:none;font-family:inherit;transition:border-color .2s}
+input:focus{border-color:var(--gl);box-shadow:0 0 0 3px rgba(74,128,96,.1)}
+input::placeholder{color:#2a3830;font-size:13px}
+
+.btn{width:100%;padding:15px;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:10px;font-family:inherit;letter-spacing:.05em;transition:all .15s}
+.btn-green{background:linear-gradient(135deg,var(--green),#3a6850);color:#d0f0d8;box-shadow:0 4px 15px rgba(74,128,96,.3)}
+.btn-green:active{transform:scale(.98)}
+.btn-gray{padding:13px 16px;background:var(--sf2);border:1px solid var(--bd);color:#80a090;border-radius:10px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit;width:auto;margin-top:0}
+.btn-red{background:linear-gradient(135deg,#903030,#702020);color:#ffd8d8}
+.row{display:flex;gap:8px;align-items:stretch}
+
+.id-box{background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px;text-align:center;position:relative;overflow:hidden}
+.id-box::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gl),transparent)}
+.id-label{font-size:9px;color:var(--mu);margin-bottom:4px;letter-spacing:.2em}
+.id-val{font-size:24px;font-weight:700;color:var(--gl);letter-spacing:.2em}
+
+.issued-card{background:var(--bg);border:1px solid rgba(106,184,120,.3);border-radius:16px;padding:20px;margin-top:14px;text-align:center;display:none;box-shadow:0 0 30px rgba(74,128,96,.1)}
+.issued-card.show{display:block}
+.issued-top{background:linear-gradient(135deg,#0d1a10,#162a1a);border-radius:12px;padding:16px;margin-bottom:14px}
+.issued-coupon-id{font-size:30px;font-weight:700;color:var(--gl);letter-spacing:.2em;margin-bottom:4px}
+.issued-member{color:#80b090;font-size:14px;margin-bottom:2px}
+.issued-valid{font-size:11px;color:var(--mu)}
+.qr-wrap{display:flex;justify-content:center;margin:14px 0}
+.qr-inner{background:white;padding:10px;border-radius:12px;display:inline-block;line-height:0;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.issued-hint{font-size:11px;color:var(--mu);line-height:1.8}
+
+.result-box{border-radius:14px;padding:20px;margin-top:12px;display:none;flex-direction:column;align-items:center;text-align:center}
+.result-box.show{display:flex}
+.result-box.valid{background:rgba(14,30,18,.8);border:1px solid rgba(74,128,96,.5)}
+.result-box.used{background:rgba(30,26,10,.8);border:1px solid rgba(176,128,48,.4)}
+.result-box.invalid{background:rgba(30,14,14,.8);border:1px solid rgba(192,80,80,.4)}
+.result-icon{font-size:40px;margin-bottom:10px}
+.result-status{font-size:17px;font-weight:700;margin-bottom:8px}
+.result-status.green{color:var(--gl)}
+.result-status.amber{color:#d0a040}
+.result-status.red{color:#e07070}
+.result-detail{font-size:12px;color:#70a080;line-height:2;margin-bottom:0}
+
+.list-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.btn-clear{background:transparent;border:1px solid rgba(192,80,80,.3);color:var(--red);border-radius:8px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:inherit}
+.section-label{font-size:10px;font-weight:700;margin-bottom:8px;letter-spacing:.15em;display:flex;align-items:center;gap:6px}
+.section-label::before{content:'';width:3px;height:12px;border-radius:2px}
+.section-label.green{color:var(--gl)}
+.section-label.green::before{background:var(--gl)}
+.section-label.amber{color:var(--am);margin-top:14px}
+.section-label.amber::before{background:var(--am)}
+.coupon-item{border-radius:12px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.coupon-item.unused{background:rgba(14,30,18,.6);border:1px solid rgba(45,80,53,.8)}
+.coupon-item.used-item{background:rgba(30,26,10,.6);border:1px solid rgba(176,128,48,.2)}
+.coupon-id-text{font-size:16px;font-weight:700;letter-spacing:.15em}
+.coupon-id-text.green{color:var(--gl)}
+.coupon-id-text.amber{color:#c09030}
+.coupon-sub{font-size:11px;color:#60a070;margin-top:2px}
+.coupon-sub2{font-size:10px;color:var(--mu);margin-top:1px}
+.badge{border-radius:20px;padding:3px 10px;font-size:9px;font-weight:700}
+.badge.green{background:rgba(29,64,37,.8);color:var(--gl);border:1px solid rgba(74,128,96,.3)}
+.badge.amber{background:rgba(42,32,16,.8);color:var(--am);border:1px solid rgba(176,128,48,.2)}
+.empty{text-align:center;color:var(--mu);padding:24px;font-size:12px}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:150;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal{background:linear-gradient(135deg,var(--sf),var(--sf2));border:1px solid var(--bd);border-radius:20px;padding:28px;width:100%;max-width:400px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal-icon{font-size:48px;margin-bottom:12px}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:8px}
+.modal-detail{font-size:12px;color:var(--mu);line-height:2.2;margin-bottom:24px}
+
+.staff-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:radial-gradient(ellipse at center,#0d1a10 0%,#060d07 100%)}
+.staff-box{background:linear-gradient(135deg,var(--sf),var(--sf2));border:1px solid rgba(106,184,120,.2);border-radius:20px;padding:32px 24px;width:100%;max-width:400px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.staff-logo{font-size:48px;margin-bottom:16px}
+.staff-clinic{font-size:11px;color:var(--mu);letter-spacing:.2em;margin-bottom:6px}
+.staff-title{font-size:20px;font-weight:700;color:var(--gl);margin-bottom:20px}
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--bd),transparent);margin:20px 0}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:linear-gradient(135deg,var(--gd),#1d4025);color:#c0e8c8;padding:12px 24px;border-radius:30px;font-size:13px;font-weight:500;z-index:200;white-space:nowrap;transition:transform .35s cubic-bezier(.34,1.56,.64,1);box-shadow:0 8px 30px rgba(0,0,0,.4);border:1px solid rgba(106,184,120,.2)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.error{background:linear-gradient(135deg,#501818,#3a1010);color:#e8b0b0;border-color:rgba(192,80,80,.2)}
+</style>
+</head>
+<body>
+
+<!-- スタッフ名入力 -->
+<div class="staff-screen" id="staffScreen">
+  <div class="staff-box">
+    <div class="staff-logo">💧</div>
+    <div class="staff-clinic">KG CLINIC</div>
+    <div class="staff-title">水素吸入クーポン管理</div>
+    <input type="text" id="staffInput" placeholder="担当スタッフ名を入力" style="text-align:center;font-size:16px;margin-bottom:0" />
+    <div class="divider"></div>
+    <div id="startBtn" style="width:100%;padding:16px;background:linear-gradient(135deg,#4a8060,#3a6850);border-radius:12px;color:#d0f0d8;font-size:17px;font-weight:700;cursor:pointer;text-align:center;box-shadow:0 4px 15px rgba(74,128,96,.3)">開始する</div>
+    <div style="margin-top:16px;font-size:10px;color:var(--mu);line-height:1.8">データはこの端末に保存されます</div>
+  </div>
+</div>
+
+<!-- メイン -->
+<div id="mainApp" style="display:none">
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">💧</div>
+      <div>
+        <div class="title">水素吸入クーポン</div>
+        <div class="subtitle">KG CLINIC</div>
+      </div>
+    </div>
+    <div class="staff-chip">担当：<span id="staffLabel"></span></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="statTotal">—</div><div class="stat-label">発行済み</div></div>
+    <div class="stat"><div class="stat-num" id="statUsed">0</div><div class="stat-label">使用済み</div></div>
+    <div class="stat"><div class="stat-num" id="statRemain">—</div><div class="stat-label">未使用</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-issue-btn" onclick="switchTab('issue')">🎫 発行</button>
+    <button class="tab-btn" id="tab-check-btn" onclick="switchTab('check')">🔍 確認</button>
+    <button class="tab-btn" id="tab-list-btn" onclick="switchTab('list')">📋 一覧</button>
+  </div>
+
+  <!-- 発行 -->
+  <div class="panel active" id="tab-issue">
+    <div class="panel-title">クーポン発行</div>
+    <div class="id-box">
+      <div class="id-label">次の発行ID</div>
+      <div class="id-val" id="nextId">H2-001</div>
+    </div>
+    <input type="text" id="memberInput" placeholder="社員様のお名前" />
+    <div id="issueBtn" class="btn btn-green">🎫 このIDで発行する</div>
+    <div class="issued-card" id="issuedCard">
+      <div class="issued-top">
+        <div style="font-size:9px;letter-spacing:.2em;color:var(--mu);margin-bottom:8px">COUPON ID</div>
+        <div class="issued-coupon-id" id="issuedId"></div>
+        <div class="issued-member" id="issuedMember"></div>
+        <div class="issued-valid" id="issuedValid"></div>
+      </div>
+      <div class="qr-wrap"><div class="qr-inner" id="qrCanvas"></div></div>
+      <div class="issued-hint">📸 この画面を社員様にお見せください<br>次回来院時にIDをご提示いただきます</div>
+    </div>
+  </div>
+
+  <!-- 確認 -->
+  <div class="panel" id="tab-check">
+    <div class="panel-title">ID確認 / 使用済み処理</div>
+
+    <!-- QRスキャンエリア -->
+    <div id="scanArea" style="display:none;margin-bottom:12px">
+      <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;min-height:200px">
+        <div id="qr-reader" style="width:100%"></div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:160px;height:160px;pointer-events:none;z-index:10">
+          <div style="position:absolute;top:0;left:0;width:28px;height:28px;border-top:3px solid var(--gl);border-left:3px solid var(--gl);border-radius:2px 0 0 0"></div>
+          <div style="position:absolute;top:0;right:0;width:28px;height:28px;border-top:3px solid var(--gl);border-right:3px solid var(--gl);border-radius:0 2px 0 0"></div>
+          <div style="position:absolute;bottom:0;left:0;width:28px;height:28px;border-bottom:3px solid var(--gl);border-left:3px solid var(--gl);border-radius:0 0 0 2px"></div>
+          <div style="position:absolute;bottom:0;right:0;width:28px;height:28px;border-bottom:3px solid var(--gl);border-right:3px solid var(--gl);border-radius:0 0 2px 0"></div>
+        </div>
+      </div>
+      <div id="stopScanBtn" class="btn" style="margin-top:8px;padding:12px;background:#3a2a20;border:1px solid #6a4030;color:#e0b090;border-radius:10px;text-align:center;cursor:pointer">■ スキャン停止</div>
+    </div>
+
+    <div id="scanBtn" class="btn btn-green" style="margin-bottom:10px;margin-top:0">📷 カメラでQRスキャン</div>
+
+    <div class="row">
+      <input type="text" id="checkInput" placeholder="H2-001" style="flex:1;letter-spacing:.15em" oninput="this.value=this.value.toUpperCase()" />
+      <div id="checkBtn" class="btn-gray" style="display:flex;align-items:center">確認</div>
+    </div>
+    <div class="result-box" id="resultBox"></div>
+  </div>
+
+  <!-- 一覧 -->
+  <div class="panel" id="tab-list">
+    <div class="list-header">
+      <div class="panel-title" style="margin-bottom:0">発行済み一覧</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-clear" id="csvBtn" onclick="exportCSV()" style="display:none;border-color:rgba(106,184,120,.3);color:var(--gl)">📥 CSV</button>
+        <button class="btn-clear" id="clearBtn" onclick="openModal('clearModal')" style="display:none">🗑 クリア</button>
+      </div>
+    </div>
+    <div id="listContent"><div class="empty">まだ発行されていません</div></div>
+  </div>
+</div>
+
+<!-- 使用済みモーダル -->
+<div class="modal-overlay" id="useModal">
+  <div class="modal">
+    <div class="modal-icon">✅</div>
+    <div class="modal-title" id="useModalTitle"></div>
+    <div class="modal-detail" id="useModalDetail"></div>
+    <div class="row">
+      <div class="btn-gray" style="flex:1;display:flex;align-items:center;justify-content:center;cursor:pointer" id="useCancelBtn">キャンセル</div>
+      <div class="btn btn-green" style="flex:1;margin-top:0" id="useConfirmBtn">使用済みにする</div>
+    </div>
+  </div>
+</div>
+
+<!-- クリアモーダル -->
+<div class="modal-overlay" id="clearModal">
+  <div class="modal">
+    <div class="modal-icon">🗑</div>
+    <div class="modal-title">データをクリアします</div>
+    <div class="modal-detail">発行済み・使用済みのすべての<br>記録が削除されます。</div>
+    <div class="row">
+      <div class="btn-gray" style="flex:1;display:flex;align-items:center;justify-content:center;cursor:pointer" id="clearCancelBtn">キャンセル</div>
+      <div class="btn btn-red" style="flex:1;margin-top:0" id="clearConfirmBtn">クリアする</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== データ管理（localStorage）=====
+function save() {
+  try { localStorage.setItem('kg_coupons', JSON.stringify({ coupons, counter })); } catch(e){}
+}
+function load() {
+  try {
+    const d = localStorage.getItem('kg_coupons');
+    if (d) { const p = JSON.parse(d); coupons = p.coupons||{}; counter = p.counter||1; }
+  } catch(e){}
+}
+
+let staffName = '';
+let coupons = {};
+let counter = 1;
+let pendingId = null;
+
+load();
+
+// ===== イベント登録 =====
+function addTap(id, fn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('touchend', e => { e.preventDefault(); fn(); });
+  el.addEventListener('click', fn);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  addTap('startBtn', startApp);
+  addTap('scanBtn', startScan);
+  addTap('stopScanBtn', stopScan);
+  addTap('issueBtn', issueNext);
+  addTap('checkBtn', checkCoupon);
+  addTap('useCancelBtn',  () => closeModal('useModal'));
+  addTap('useConfirmBtn', confirmUse);
+  addTap('clearCancelBtn',  () => closeModal('clearModal'));
+  addTap('clearConfirmBtn', confirmClear);
+
+  document.getElementById('staffInput').addEventListener('keydown', e => { if(e.key==='Enter') startApp(); });
+  document.getElementById('memberInput').addEventListener('keydown', e => { if(e.key==='Enter') issueNext(); });
+  document.getElementById('checkInput').addEventListener('keydown', e => { if(e.key==='Enter') checkCoupon(); });
+
+  updateStats();
+  updateNextId();
+});
+
+// ===== スタート =====
+function startApp() {
+  const input = document.getElementById('staffInput');
+  input.blur();
+  const name = input.value.trim();
+  if (!name) { showToast('スタッフ名を入力してください', true); return; }
+  staffName = name;
+  document.getElementById('staffLabel').textContent = name;
+  document.getElementById('staffScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  updateStats();
+  updateNextId();
+  renderList();
+}
+
+// ===== 発行 =====
+function makeId(n) { return 'H2-' + String(n).padStart(3,'0'); }
+function makeValid() {
+  const d = new Date(); d.setMonth(d.getMonth()+1);
+  return d.toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric'});
+}
+
+function issueNext() {
+  const name = document.getElementById('memberInput').value.trim();
+  if (!name) { showToast('お名前を入力してください', true); return; }
+  const id = makeId(counter);
+  const now = new Date().toLocaleString('ja-JP');
+  const valid = makeValid();
+  coupons[id] = { name, issuedAt: now, valid, used: false, usedAt: null, staff: null };
+  counter++;
+  save();
+
+  document.getElementById('issuedId').textContent = id;
+  document.getElementById('issuedMember').textContent = name + ' 様';
+  document.getElementById('issuedValid').textContent = '有効期限：' + valid + ' まで';
+
+  const qrEl = document.getElementById('qrCanvas');
+  qrEl.innerHTML = '';
+  new QRCode(qrEl, { text: id, width: 140, height: 140, colorDark: '#0d1210', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+
+  document.getElementById('issuedCard').className = 'issued-card show';
+  document.getElementById('memberInput').value = '';
+  updateStats();
+  updateNextId();
+  renderList();
+  showToast('🎫 ' + name + ' 様に ' + id + ' を発行しました');
+}
+
+function updateNextId() {
+  document.getElementById('nextId').textContent = makeId(counter);
+}
+
+// ===== 確認 =====
+function checkCoupon() {
+  const id = document.getElementById('checkInput').value.trim().toUpperCase();
+  if (!id) { showToast('IDを入力してください', true); return; }
+  const box = document.getElementById('resultBox');
+  const c = coupons[id];
+
+  if (!c) {
+    box.className = 'result-box show invalid';
+    box.innerHTML = '<div class="result-icon">❌</div><div class="result-status red">無効なクーポン</div><div class="result-detail">「' + id + '」は登録されていません</div>';
+    return;
+  }
+  if (c.used) {
+    box.className = 'result-box show used';
+    box.innerHTML = '<div class="result-icon">⚠️</div><div class="result-status amber">使用済み</div><div class="result-detail">社員名：' + (c.name||'—') + '<br>使用日時：' + c.usedAt + '<br>担当：' + c.staff + '</div>';
+    return;
+  }
+  box.className = 'result-box show valid';
+  const useBtn = document.createElement('div');
+  useBtn.className = 'btn btn-green';
+  useBtn.style.marginTop = '12px';
+  useBtn.textContent = '使用済みにする';
+  useBtn.addEventListener('touchend', e => { e.preventDefault(); openUseModal(id); });
+  useBtn.addEventListener('click', () => openUseModal(id));
+  box.innerHTML = '<div class="result-icon">✅</div><div class="result-status green">有効なクーポン</div><div class="result-detail" style="margin-bottom:4px">社員名：' + (c.name||'未設定') + '<br>有効期限：' + c.valid + '</div>';
+  box.appendChild(useBtn);
+}
+
+function openUseModal(id) {
+  pendingId = id;
+  const c = coupons[id];
+  document.getElementById('useModalTitle').textContent = id + ' を使用済みにします';
+  document.getElementById('useModalDetail').innerHTML = '社員名：' + (c.name||'未設定') + '<br>担当：' + staffName;
+  openModal('useModal');
+}
+
+function confirmUse() {
+  if (!pendingId) return;
+  const now = new Date().toLocaleString('ja-JP');
+  coupons[pendingId].used = true;
+  coupons[pendingId].usedAt = now;
+  coupons[pendingId].staff = staffName;
+  save();
+  document.getElementById('checkInput').value = '';
+  document.getElementById('resultBox').className = 'result-box';
+  document.getElementById('resultBox').innerHTML = '';
+  closeModal('useModal');
+  updateStats();
+  renderList();
+  showToast('✅ ' + pendingId + ' を使用済みにしました');
+  pendingId = null;
+}
+
+// ===== 一覧 =====
+function updateStats() {
+  const total = Object.keys(coupons).length;
+  const used  = Object.values(coupons).filter(c => c.used).length;
+  document.getElementById('statTotal').textContent  = total || '—';
+  document.getElementById('statUsed').textContent   = used;
+  document.getElementById('statUsed').className     = 'stat-num' + (used > 0 ? ' amber' : '');
+  document.getElementById('statRemain').textContent = total ? total - used : '—';
+  document.getElementById('tab-list-btn').textContent = '📋 一覧' + (total > 0 ? '('+total+')' : '');
+}
+
+function renderList() {
+  const content = document.getElementById('listContent');
+  const total = Object.keys(coupons).length;
+  document.getElementById('clearBtn').style.display = total > 0 ? 'block' : 'none';
+  document.getElementById('csvBtn').style.display = total > 0 ? 'block' : 'none';
+  if (total === 0) { content.innerHTML = '<div class="empty">まだ発行されていません</div>'; return; }
+
+  const unused  = Object.entries(coupons).filter(([,c]) => !c.used).reverse();
+  const usedList = Object.entries(coupons).filter(([,c]) => c.used).reverse();
+  let html = '';
+
+  if (unused.length > 0) {
+    html += '<div class="section-label green">未使用 (' + unused.length + '件)</div>';
+    unused.forEach(([id,c]) => {
+      html += '<div class="coupon-item unused"><div><div class="coupon-id-text green">' + id + '</div><div class="coupon-sub">' + c.name + ' 様　' + c.issuedAt + '</div></div><span class="badge green">未使用</span></div>';
+    });
+  }
+  if (usedList.length > 0) {
+    html += '<div class="section-label amber">使用済み (' + usedList.length + '件)</div>';
+    usedList.forEach(([id,c]) => {
+      html += '<div class="coupon-item used-item"><div><div class="coupon-id-text amber">' + id + '</div><div class="coupon-sub">' + c.name + ' 様　使用：' + c.usedAt + '</div><div class="coupon-sub2">担当：' + c.staff + '</div></div><span class="badge amber">使用済</span></div>';
+    });
+  }
+  content.innerHTML = html;
+}
+
+function exportCSV() {
+  const total = Object.keys(coupons).length;
+  if (total === 0) { showToast('データがありません', true); return; }
+  const header = 'クーポンID,社員名,発行日時,有効期限,状態,使用日時,担当スタッフ';
+  const rows = Object.entries(coupons).map(([id,c]) =>
+    [id, c.name, c.issuedAt, c.valid, c.used?'使用済み':'未使用', c.usedAt||'', c.staff||''].join(',')
+  );
+  const csv = '\uFEFF' + [header, ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '水素吸入クーポン_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSVを出力しました');
+}
+
+function confirmClear() {
+  coupons = {}; counter = 1; save();
+  updateStats(); updateNextId(); renderList();
+  document.getElementById('issuedCard').className = 'issued-card';
+  document.getElementById('resultBox').className = 'result-box';
+  document.getElementById('checkInput').value = '';
+  closeModal('clearModal');
+  showToast('データをクリアしました');
+}
+
+// ===== QRスキャン =====
+let html5QrCode = null;
+let scanning = false;
+
+function startScan() {
+  if (scanning) return;
+  document.getElementById('scanArea').style.display = 'block';
+  document.getElementById('scanBtn').style.display = 'none';
+  html5QrCode = new Html5Qrcode('qr-reader');
+  html5QrCode.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 200, height: 200 } },
+    (decodedText) => {
+      stopScan();
+      const id = decodedText.trim().toUpperCase();
+      document.getElementById('checkInput').value = id;
+      checkCoupon();
+    },
+    () => {}
+  ).catch(() => {
+    showToast('カメラへのアクセスを許可してください', true);
+    stopScan();
+  });
+  scanning = true;
+}
+
+function stopScan() {
+  if (html5QrCode && scanning) {
+    html5QrCode.stop().then(() => { html5QrCode.clear(); }).catch(() => {});
+  }
+  scanning = false;
+  document.getElementById('scanArea').style.display = 'none';
+  document.getElementById('scanBtn').style.display = 'block';
+}
+
+// ===== タブ =====
+function switchTab(tab) {
+  ['issue','check','list'].forEach(t => {
+    document.getElementById('tab-'+t+'-btn').className = 'tab-btn' + (t===tab?' active':'');
+    document.getElementById('tab-'+t).className = 'panel' + (t===tab?' active':'');
+  });
+  if (tab==='list') renderList();
+}
+
+// ===== モーダル =====
+function openModal(id)  { document.getElementById(id).className = 'modal-overlay show'; }
+function closeModal(id) { document.getElementById(id).className = 'modal-overlay'; }
+
+// ===== トースト =====
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isError?' error':'');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
